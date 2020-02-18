@@ -1,5 +1,9 @@
 package com.wairacynical;
 
+import com.google.gson.Gson;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
@@ -11,17 +15,19 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class soundcloudTrack {
+    private static final OkHttpClient httpClient = new OkHttpClient();
     private String sourceLink;
     private String directLink;
     private String filetype;
     private String filename;
     private Map<String,String> tags = new LinkedHashMap<>();
 
-    //private final String reserveClientId = "O7Bh2WbKtCGHK24fWd3xTguziGannZsb";
-    private final String reserveClientId = "FWvCdv5Apc7wvDHUKvfAHngHc2Ai856n ";
+    private final String reserveClientId = "c58TXg96mhC1ETLDBCdIhbGdzSHdzqXN";
+    //private final String reserveClientId = "FWvCdv5Apc7wvDHUKvfAHngHc2Ai856n";
     private final String part1="https://api-v2.soundcloud.com/media/soundcloud:tracks:";
     private final String part2="/stream/hls";
-    private final String part3="https://cf-hls-opus-media.sndcdn.com/media/";
+    private final String part3="https://cf-hls-media.sndcdn.com/media/";
+    private final String MAX_LENGHT = "9000000";
 
     public soundcloudTrack(String sourceLink) {
         this.sourceLink = sourceLink;
@@ -101,16 +107,17 @@ public class soundcloudTrack {
 
     private void makeDirectLink() {
         try {
-            String mediaLink = WebCalls.getAttributeByQuery(sourceLink);
+            Document doc = Jsoup.connect(sourceLink).get();
+            String mediaLink = doc.getAllElements().toString();
             //System.out.println(mediaLink);
-            mediaLink = mediaLink.substring(mediaLink.lastIndexOf(part1), mediaLink.lastIndexOf(part2));
+            mediaLink = mediaLink.substring(mediaLink.indexOf(part1), mediaLink.indexOf(part2));
             StringBuilder str = new StringBuilder()
                     .append(mediaLink)
                     .append("/stream/hls?client_id=")
                     .append(reserveClientId);
-            System.out.println("requestLink = " + str.toString());
-            mediaLink = WebCalls.getRequestToJsonGetUrl(str.toString());
-            System.out.println("mediaLink = " + mediaLink);
+            //System.out.println("requestLink = " + str.toString());
+            mediaLink = getRequestToJsonGetUrl(str.toString());
+            //System.out.println("mediaLink = " + mediaLink);
             URL website = new URL(mediaLink);
             InputStream in = website.openStream();
             byte[] bytes = in.readAllBytes();
@@ -118,7 +125,7 @@ public class soundcloudTrack {
             //System.out.println("playlist = " + playlist);
             directLink = playlist.substring(playlist.lastIndexOf(part3), playlist.lastIndexOf("#"));
             //System.out.println(directLink);
-            directLink = directLink.replaceAll("\\/media\\/.*\\/.*\\/", "/media/0/9000000/");
+            directLink = directLink.replaceAll("\\/media\\/.*\\/.*\\/", "/media/0/" + MAX_LENGHT +"/" );
         } catch (IOException e) {
             System.out.println("cant get mediaLink from sourceLink");
             e.printStackTrace();
@@ -136,7 +143,6 @@ public class soundcloudTrack {
             e.printStackTrace();
             filetype = ".media";
         }
-        //https://cf-hls-media.sndcdn.com/media/478562/638221/jTrbUX6VbW8u.128.mp3?Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiKjovL2NmLWhscy1tZWRpYS5zbmRjZG4uY29tL21lZGlhLyovKi9qVHJiVVg2VmJXOHUuMTI4Lm1wMyIsIkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiQVdTOkVwb2NoVGltZSI6MTU4MTU5Njg0Mn19fV19&Signature=N2-FouNfxvkX9iE83ghYqiDN9jz07OPgywSc7UPaHvAzZkYRzLOJOEG88ih1m-v4Wd9AHtS7I1NRQJRH5jsKhcKgDh5CYY5ZA85kujMb8hSBjns51JcVgB~VRq-pwEH6Ypvu~I1BAQ6Wnlqa6ALLf3pdPBFaXyCvYo5JKRTOm6eT75t5R3Ok8NhPf1c7U8lp93MFXXK1E4MaesZw9iFLvdCh2cn23oTrLHtPPxN7pRPrXJ8U6lgjWraUhEQlrUwg0a3B6~zmBQIF0xy8eW5r06J-xKLHrNSVjYBlbOqvTtcBdYoUJ4LDLGIBd0k1~kJOIZ8ONDfBDgJEYNV0UdUdqQ__&Key-Pair-Id=APKAI6TU7MMXM5DG6EPQ
     }
 
     private void makeFilename() {
@@ -147,5 +153,17 @@ public class soundcloudTrack {
             e.printStackTrace();
             filename = "track";
         }
+    }
+    public String getRequestToJsonGetUrl(String link) throws IOException {
+        Request r = new Request.Builder()
+                .url(link)
+               // .addHeader("User-Agent", agent)
+                .build();
+        Response response = httpClient.newCall(r).execute();
+        if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+        String json = response.body().string();
+        Gson g = new Gson();
+        Container container = g.fromJson(json, Container.class);
+        return container.url;
     }
 }
