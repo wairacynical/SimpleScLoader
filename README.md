@@ -5,6 +5,7 @@ Simpe Java API for SoundCloud, supports downloading and fetching tags
 - fetching tags (artist, title, album, year, album art)
 - downloading tracks (mp3, opus support soon)
 - autosetting tags to downloaded track (works only with .mp3 files)
+- must work on any platform (only tested on macOS)
 # Usage
 - .jar:
 ```
