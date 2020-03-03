@@ -28,9 +28,6 @@ public class soundcloudTrack {
 
     private final String reserveClientId = "c58TXg96mhC1ETLDBCdIhbGdzSHdzqXN";
     //private final String reserveClientId = "FWvCdv5Apc7wvDHUKvfAHngHc2Ai856n";
-    private final String part1="https://api-v2.soundcloud.com/media/soundcloud:tracks:";
-    private final String part2="/stream/hls";
-    private final String part3="https://cf-hls-media.sndcdn.com/media/";
     private final String MAX_LENGHT = "9000000";
 
     public soundcloudTrack(String sourceLink, boolean forceMp3) {
