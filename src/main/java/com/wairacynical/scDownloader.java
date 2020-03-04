@@ -17,6 +17,12 @@ public class scDownloader {
 
     private static Path targetPath;
     private static boolean forceMp3 = true;
+    private static String finalTrackName;
+
+    public static File getTrackFile() {
+        File trackFile = new File(finalTrackName);
+        return trackFile;
+    }
 
     public static void Download(String sourceLink, String downloadPath) {
         soundcloudTrack track = new soundcloudTrack(sourceLink, forceMp3);
@@ -44,7 +50,8 @@ public class scDownloader {
                 byte[] bytes = in.readAllBytes();
                 id3v2Tag.setAlbumImage(bytes, "image/jpeg");
                 mp3file.setId3v2Tag(id3v2Tag);
-                mp3file.save(downloadPath + track.getTags().get("artist") + " - " + track.getTags().get("title") + track.getFiletype());
+                finalTrackName = downloadPath + track.getTags().get("artist") + " - " + track.getTags().get("title") + track.getFiletype();
+                mp3file.save(finalTrackName);
                 try
                 {
                     File f = new File(downloadPath + track.getFilename());
