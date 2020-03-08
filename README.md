@@ -13,5 +13,5 @@ java -jar SimpleScApi.jar <soundcloud track link>
 ```
 - java class
 ```
-scDownloader.Downloader(<soundcloud track link, <download path>);
+soundcloudTrack.download(<soundcloud track link, <download path>);
 ```
