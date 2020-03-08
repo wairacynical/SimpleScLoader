@@ -1,16 +1,23 @@
 package com.wairacynical;
 
-import com.google.gson.Gson;
+import com.mpatric.mp3agic.*;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import org.apache.commons.validator.routines.UrlValidator;
+import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Map;
@@ -21,34 +28,43 @@ public class soundcloudTrack {
     private static final OkHttpClient httpClient = new OkHttpClient();
     private String sourceLink;
     private String directLink;
-    private String filetype;
     private String filename;
-    private boolean forceMp3;
+    private Path targetPath;
+    private String downloadPath;
+    private String finalTrackName;
     private Map<String,String> tags = new LinkedHashMap<>();
+    private File track;
 
     private final String reserveClientId = "c58TXg96mhC1ETLDBCdIhbGdzSHdzqXN";
     //private final String reserveClientId = "FWvCdv5Apc7wvDHUKvfAHngHc2Ai856n";
     private final String MAX_LENGHT = "9000000";
 
-    public soundcloudTrack(String sourceLink, boolean forceMp3) {
+    public soundcloudTrack(String sourceLink, String downloadPath) throws Exception {
         this.sourceLink = sourceLink;
-        this.forceMp3 = forceMp3;
+        this.downloadPath = downloadPath;
+        if (!linkChecker()) {
+            throw new Exception("invalid link");
+        }
         makeTags();
         makeDirectLink();
         makeFilename();
-        makeFiletype();
     }
 
     public String getDirectLink() {
         return directLink;
     }
 
-    public String getFiletype() {
-        return filetype;
-    }
-
     public String getFilename() {
         return filename;
+    }
+
+    public File getTrack() {
+        track = new File(finalTrackName);
+        return track;
+    }
+
+    public String getFinalTrackName() {
+        return finalTrackName;
     }
 
     public Map<String, String> getTags() {
@@ -106,7 +122,6 @@ public class soundcloudTrack {
             e.printStackTrace();
         }
     }
-
     private void makeDirectLink() {
         Pattern pattern = Pattern.compile("https?:\\/\\/(www\\.)?[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}\\b([-a-zA-Z0-9()@:%_\\+.~#?&//=]*)");
         LinkedList<String> matchedLinks = new LinkedList<>();
@@ -122,12 +137,9 @@ public class soundcloudTrack {
                 matchedLinks.add(matcher.group());
             }
             //matchedLinks.forEach(System.out::println);
-            //choose correct link depending on filetype
-            if (forceMp3 == true) {
                 str.append(matchedLinks.get(0))
                         .append("?client_id=")
                         .append(reserveClientId);
-            }
             // TODO: forceMp3 false behaviour
 //            else {
 //                str.append(matchedLinks.get(1))
@@ -159,17 +171,6 @@ public class soundcloudTrack {
             e.printStackTrace();
         }
     }
-
-    private void makeFiletype() {
-        try {
-            filetype = directLink.substring(directLink.lastIndexOf("."), directLink.indexOf("?"));
-        } catch (Exception e) {
-            System.out.println("cant determine filetype");
-            e.printStackTrace();
-            filetype = ".media";
-        }
-    }
-
     private void makeFilename() {
         try {
             filename = directLink.substring(directLink.lastIndexOf("/")+1, directLink.indexOf("?"));
@@ -179,16 +180,67 @@ public class soundcloudTrack {
             filename = "track";
         }
     }
+    public void download() {
+        try {
+            URL sourceURL = new URL(directLink);
+            targetPath = new File(downloadPath + getFilename()).toPath();
+            Files.copy(sourceURL.openStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+        } catch (MalformedURLException e) {
+            System.out.println("invalid download link");
+            e.printStackTrace();
+        } catch (IOException e) {
+            System.out.println("cant save file");
+            e.printStackTrace();
+        }
+            try {
+                Mp3File mp3file = new Mp3File(targetPath);
+                ID3v2 id3v2Tag = new ID3v24Tag();
+                id3v2Tag.setArtist(tags.get("artist"));
+                id3v2Tag.setTitle(tags.get("title"));
+                id3v2Tag.setAlbum(tags.get("album"));
+                id3v2Tag.setYear(tags.get("year"));
+                URL aurl = new URL(tags.get("albumArtUrl"));
+                InputStream in = aurl.openStream();
+                byte[] bytes = in.readAllBytes();
+                id3v2Tag.setAlbumImage(bytes, "image/jpeg");
+                mp3file.setId3v2Tag(id3v2Tag);
+                finalTrackName = downloadPath + tags.get("artist") + " - " + tags.get("title") +".mp3";
+                mp3file.save(finalTrackName);
+                try
+                {
+                    File f = new File(downloadPath + getFilename());
+                    if(f.delete()) {
+                        System.out.println("download successful");
+                    };
+                } catch(Exception e) {
+                    e.printStackTrace();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (UnsupportedTagException e) {
+                e.printStackTrace();
+            } catch (InvalidDataException e) {
+                e.printStackTrace();
+            } catch (NotSupportedException e) {
+                e.printStackTrace();
+            }
+    }
     private String getRequestToJsonGetUrl(String link) throws IOException {
         Request r = new Request.Builder()
                 .url(link)
-               // .addHeader("User-Agent", agent)
                 .build();
         Response response = httpClient.newCall(r).execute();
         if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
-        String json = response.body().string();
-        Gson g = new Gson();
-        Container container = g.fromJson(json, Container.class);
-        return container.url;
+        JSONObject j = new JSONObject(response.body().string());
+        return j.get("url").toString();
+    }
+    private Boolean linkChecker() {
+        UrlValidator uv = new UrlValidator();
+        if(uv.isValid(sourceLink)) {
+            if (sourceLink.contains(".m")) sourceLink = sourceLink.replace("m.","");
+            if (!sourceLink.contains("soundcloud.com")) return false;
+            return true;
+        }
+        else return false;
     }
 }
