@@ -6,7 +6,7 @@
 
     <groupId>com.wairacynical</groupId>
     <artifactId>SimpleScApi</artifactId>
-    <version>3.0-SNAPSHOT</version>
+    <version>4.0-SNAPSHOT</version>
     <packaging>jar</packaging>
     <build>
         <plugins>

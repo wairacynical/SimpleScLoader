@@ -37,8 +37,6 @@ public class soundcloudTrack {
 
     private final String reserveClientId = "c58TXg96mhC1ETLDBCdIhbGdzSHdzqXN";
     //private final String reserveClientId = "FWvCdv5Apc7wvDHUKvfAHngHc2Ai856n";
-    private final String MAX_LENGHT = "9000000";
-
     public soundcloudTrack(String sourceLink, String downloadPath) throws Exception {
         this.sourceLink = sourceLink;
         this.downloadPath = downloadPath;
@@ -58,13 +56,11 @@ public class soundcloudTrack {
         return filename;
     }
 
-    public File getTrack() {
-        track = new File(finalTrackName);
-        return track;
-    }
+    private final String MAX_LENGHT = "9000000";
 
-    public String getFinalTrackName() {
-        return finalTrackName;
+    public File getTrack() {
+        track = new File("new"+filename);
+        return track;
     }
 
     public Map<String, String> getTags() {
@@ -80,13 +76,13 @@ public class soundcloudTrack {
             tags.put("scArtist", doc.selectFirst("meta[itemprop=\"name\"]").attr("content"));
             tags.put("year", doc.selectFirst("time").toString().replaceAll("[^0-9]","").substring(0,4));
             //get real track name
-            if (tags.get("scTitle").contains("-")) {
-                String[] parts = tags.get("scTitle").split("-");
-                tags.put("artist", parts[0].replace("-", "").trim());
+            if (tags.get("scTitle").contains(" - ")) {
+                String[] parts = tags.get("scTitle").split(" - ");
+                tags.put("artist", parts[0].replace(" - ", "").trim());
                 tags.put("title", parts[1].trim());
-            } else if (tags.get("scTitle").contains("—")) {
-                String[] parts = tags.get("scTitle").split("—");
-                tags.put("artist", parts[0].replace("—", "").trim());
+            } else if (tags.get("scTitle").contains(" — ")) {
+                String[] parts = tags.get("scTitle").split(" — ");
+                tags.put("artist", parts[0].replace(" — ", "").trim());
                 tags.put("title", parts[1].trim());
             } else {
                 tags.put("artist", doc.selectFirst("meta[itemprop=\"name\"]").attr("content"));
@@ -129,40 +125,40 @@ public class soundcloudTrack {
         try {
             //get all stream links from page
             Matcher matcher = pattern.matcher(Jsoup.connect(sourceLink)
-                                                            .get()
-                                                            .getAllElements()
-                                                            .toString());
+                    .get()
+                    .getAllElements()
+                    .toString());
             while (matcher.find()) {
                 if(matcher.group().contains("stream/hls"))
-                matchedLinks.add(matcher.group());
+                    matchedLinks.add(matcher.group());
             }
             //matchedLinks.forEach(System.out::println);
-                str.append(matchedLinks.get(0))
-                        .append("?client_id=")
-                        .append(reserveClientId);
+            str.append(matchedLinks.get(0))
+                    .append("?client_id=")
+                    .append(reserveClientId);
             // TODO: forceMp3 false behaviour
 //            else {
 //                str.append(matchedLinks.get(1))
 //                        .append("?client_id=")
 //                        .append(reserveClientId);
 //                }
-                //get playlist link
-                String buffer = getRequestToJsonGetUrl(str.toString());
-                //System.out.println("playlistLink = " + buffer);
-                //get data from playlist
-                URL playlistLink = new URL(buffer);
-                InputStream in = playlistLink.openStream();
-                byte[] bytes = in.readAllBytes();
-                buffer = new String(bytes, StandardCharsets.UTF_8);
-                //System.out.println("buffer = " + buffer);
-                // get direct link from playlist
-                matcher = pattern.matcher(buffer);
-                matcher.find();
-                buffer = matcher.group();
-                //edit direct link
-                //System.out.println("directLink = " + buffer);
-                directLink = buffer.replaceAll("\\/media\\/.*\\/.*\\/", "/media/0/" + MAX_LENGHT + "/");
-                //System.out.println("directLink = " + directLink);
+            //get playlist link
+            String buffer = getRequestToJsonGetUrl(str.toString());
+            //System.out.println("playlistLink = " + buffer);
+            //get data from playlist
+            URL playlistLink = new URL(buffer);
+            InputStream in = playlistLink.openStream();
+            byte[] bytes = in.readAllBytes();
+            buffer = new String(bytes, StandardCharsets.UTF_8);
+            //System.out.println("buffer = " + buffer);
+            // get direct link from playlist
+            matcher = pattern.matcher(buffer);
+            matcher.find();
+            buffer = matcher.group();
+            //edit direct link
+            //System.out.println("directLink = " + buffer);
+            directLink = buffer.replaceAll("\\/media\\/.*\\/.*\\/", "/media/0/" + MAX_LENGHT + "/");
+            //System.out.println("directLink = " + directLink);
         } catch (IOException e) {
             System.out.println("cant get mediaLink from sourceLink");
             e.printStackTrace();
@@ -192,38 +188,38 @@ public class soundcloudTrack {
             System.out.println("cant save file");
             e.printStackTrace();
         }
-            try {
-                Mp3File mp3file = new Mp3File(targetPath);
-                ID3v2 id3v2Tag = new ID3v24Tag();
-                id3v2Tag.setArtist(tags.get("artist"));
-                id3v2Tag.setTitle(tags.get("title"));
-                id3v2Tag.setAlbum(tags.get("album"));
-                id3v2Tag.setYear(tags.get("year"));
-                URL aurl = new URL(tags.get("albumArtUrl"));
-                InputStream in = aurl.openStream();
-                byte[] bytes = in.readAllBytes();
-                id3v2Tag.setAlbumImage(bytes, "image/jpeg");
-                mp3file.setId3v2Tag(id3v2Tag);
-                finalTrackName = downloadPath + tags.get("artist") + " - " + tags.get("title") +".mp3";
-                mp3file.save(finalTrackName);
-                try
-                {
-                    File f = new File(downloadPath + getFilename());
-                    if(f.delete()) {
-                        System.out.println("download successful");
-                    };
-                } catch(Exception e) {
-                    e.printStackTrace();
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (UnsupportedTagException e) {
-                e.printStackTrace();
-            } catch (InvalidDataException e) {
-                e.printStackTrace();
-            } catch (NotSupportedException e) {
+        try {
+            Mp3File mp3file = new Mp3File(targetPath);
+            ID3v2 id3v2Tag = new ID3v24Tag();
+            id3v2Tag.setArtist(tags.get("artist"));
+            id3v2Tag.setTitle(tags.get("title"));
+            id3v2Tag.setAlbum(tags.get("album"));
+            id3v2Tag.setYear(tags.get("year"));
+            URL aurl = new URL(tags.get("albumArtUrl"));
+            InputStream in = aurl.openStream();
+            byte[] bytes = in.readAllBytes();
+            id3v2Tag.setAlbumImage(bytes, "image/jpeg");
+            mp3file.setId3v2Tag(id3v2Tag);
+            finalTrackName = downloadPath + tags.get("artist") + " - " + tags.get("title") +".mp3";
+            mp3file.save("new"+filename);
+            try
+            {
+                File f = new File(downloadPath + filename);
+                if(f.delete()) {
+                    System.out.println("download successful");
+                };
+            } catch(Exception e) {
                 e.printStackTrace();
             }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (UnsupportedTagException e) {
+            e.printStackTrace();
+        } catch (InvalidDataException e) {
+            e.printStackTrace();
+        } catch (NotSupportedException e) {
+            e.printStackTrace();
+        }
     }
     private String getRequestToJsonGetUrl(String link) throws IOException {
         Request r = new Request.Builder()
