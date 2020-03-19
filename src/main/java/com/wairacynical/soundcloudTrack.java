@@ -35,8 +35,7 @@ public class soundcloudTrack {
     private ID3v2 id3v2Tag = new ID3v24Tag();
     private final String MAX_LENGHT = "9000000";
 
-    private final String reserveClientId = "c58TXg96mhC1ETLDBCdIhbGdzSHdzqXN";
-    //private final String reserveClientId = "FWvCdv5Apc7wvDHUKvfAHngHc2Ai856n";
+    private final String reserveClientId = "psT32GLDMZ0TQKgfPkzrGIlco3PYA1kf";
     public soundcloudTrack(String sourceLink, String downloadPath) throws Exception {
         this.sourceLink = sourceLink;
         this.downloadPath = downloadPath;
