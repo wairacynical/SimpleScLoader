@@ -12,6 +12,8 @@ public class Run {
             String url = args[0];
             soundcloudTrack sc = new soundcloudTrack(url, path.toString());
             sc.download();
+            System.out.println(sc.getArtist());
+            System.out.println(sc.getTitle());
         } catch (IndexOutOfBoundsException e) {
             System.out.println("provide a soundcloud link");
         }

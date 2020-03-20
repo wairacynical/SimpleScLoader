@@ -36,12 +36,16 @@ public class soundcloudTrack {
     private final String MAX_LENGHT = "9000000";
 
     private final String reserveClientId = "psT32GLDMZ0TQKgfPkzrGIlco3PYA1kf";
+    private final String linkPattern = "https?:\\/\\/(www\\.)?[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}\\b([-a-zA-Z0-9()@:%_\\+.~#?&//=]*)";
+
+
     public soundcloudTrack(String sourceLink, String downloadPath) throws Exception {
         this.sourceLink = sourceLink;
         this.downloadPath = downloadPath;
         if (!linkChecker()) {
             throw new Exception("invalid link");
         }
+        tagFetcher();
     }
 
     public File getTrack() {
@@ -49,10 +53,19 @@ public class soundcloudTrack {
         return track;
     }
 
-    public void download() {
-        Pattern pattern = Pattern.compile("https?:\\/\\/(www\\.)?[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}\\b([-a-zA-Z0-9()@:%_\\+.~#?&//=]*)");
-        LinkedList<String> matchedLinks = new LinkedList<>();
-        StringBuilder str = new StringBuilder();
+    public String getArtist() {
+        return id3v2Tag.getArtist();
+    }
+
+    public String getTitle() {
+        return id3v2Tag.getTitle();
+    }
+
+    public String getYear() {
+        return id3v2Tag.getYear();
+    }
+
+    private void tagFetcher() {
         try {
             Document doc = Jsoup.connect(sourceLink).get();
             String albumArtUrl = doc.select("[src]").tagName("img").attr("abs:src");
@@ -86,6 +99,17 @@ public class soundcloudTrack {
             InputStream in = aurl.openStream();
             byte[] bytes = in.readAllBytes();
             id3v2Tag.setAlbumImage(bytes, "image/jpeg");
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+        public void download() {
+        Pattern pattern = Pattern.compile(linkPattern);
+        LinkedList<String> matchedLinks = new LinkedList<>();
+        StringBuilder str = new StringBuilder();
+        try {
             Matcher matcher = pattern.matcher(Jsoup.connect(sourceLink)
                     .get()
                     .getAllElements()
@@ -108,8 +132,8 @@ public class soundcloudTrack {
             String buffer = getRequestToJsonGetUrl(str.toString());
             //get data from playlist
             URL playlistLink = new URL(buffer);
-            in = playlistLink.openStream();
-            bytes = in.readAllBytes();
+            InputStream in = playlistLink.openStream();
+            byte[] bytes = in.readAllBytes();
             buffer = new String(bytes, StandardCharsets.UTF_8);
             // get direct link from playlist
             matcher = pattern.matcher(buffer);
