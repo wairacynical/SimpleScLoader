@@ -1,5 +1,8 @@
-# SimpleScApi
-Simpe Java API for SoundCloud, supports downloading and fetching tags
+# DEPRECATED SimpleScLoader
+
+SoundCloud fixed approach used in this project and it is now deprecated. 
+
+Simpe Java downloader for SoundCloud, supports downloading and fetching tags
 
 # Features
 - fetching tags (artist, title, album, year, album art)
